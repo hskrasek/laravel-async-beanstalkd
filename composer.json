@@ -1,0 +1,16 @@
+{
+    "name": "hskrasek/laravel-async-beanstalkd",
+    "description": "Provides an asynchronous beanstalkd queue driver for the Laravel framework.",
+    "keywords": ["laravel", "async", "beanstalkd"],
+    "autoload": {
+        "psr-4": {
+            "HSkrasek\\Queue\\": "src/"
+        }
+    },
+    "require": {
+        "php": ">=7.0.0",
+        "amphp/beanstalk": "^0.2.3",
+        "illuminate/support": "5.5.*",
+        "illuminate/queue": "5.5.*"
+    }
+}
