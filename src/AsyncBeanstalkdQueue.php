@@ -40,9 +40,7 @@ class AsyncBeanstalkdQueue extends Queue implements QueueContract
      */
     public function size($queue = null)
     {
-        return wait(call(function () use ($queue) {
-            return $this->client->getTubeStats($this->getQueue($queue));
-        }))->currentJobsUrgent;
+        return wait($this->client->getTubeStats($this->getQueue($queue)))->currentJobsUrgent;
     }
 
     /**
@@ -70,11 +68,9 @@ class AsyncBeanstalkdQueue extends Queue implements QueueContract
      */
     public function pushRaw($payload, $queue = null, array $options = [])
     {
-        call(function () use ($queue) {
-            $this->client->use($this->getQueue($queue));
-        });
+        return wait(call(function () use ($payload, $queue) {
+            yield $this->client->use($this->getQueue($queue));
 
-        return wait(call(function () use ($payload) {
             return $this->client->put($payload, $this->timeToRun);
         }));
     }
@@ -91,11 +87,9 @@ class AsyncBeanstalkdQueue extends Queue implements QueueContract
      */
     public function later($delay, $job, $data = '', $queue = null)
     {
-        call(function () use ($queue) {
-            $this->client->use($this->getQueue($queue));
-        });
+        return wait(call(function () use ($delay, $job, $data, $queue) {
+            yield $this->client->use($this->getQueue($queue));
 
-        return wait(call(function () use ($delay, $job, $data) {
             return $this->client->put(
                 $this->createPayload($job, $data),
                 $this->timeToRun,
@@ -115,13 +109,11 @@ class AsyncBeanstalkdQueue extends Queue implements QueueContract
     {
         $queue = $this->getQueue($queue);
 
-        call(function () use ($queue) {
-            $this->client->watch($queue);
-        });
+        return wait(call(function () use ($queue) {
+            yield $this->client->watch($queue);
 
-        if ([$jobId, $jobBody] = wait(call(function () {
-            return $this->client->reserve($this->timeToRun);
-        }))) {
+            list($jobId, $jobBody) = yield $this->client->reserve($this->timeToRun);
+
             return new AsyncBeanstalkdJob(
                 $this->container,
                 $this->client,
@@ -130,7 +122,7 @@ class AsyncBeanstalkdQueue extends Queue implements QueueContract
                 $this->connectionName,
                 $queue
             );
-        }
+        }));
     }
 
     /**
@@ -143,11 +135,11 @@ class AsyncBeanstalkdQueue extends Queue implements QueueContract
      */
     public function deleteMessage($queue, $id)
     {
-        call(function () use ($queue) {
-            $this->client->use($this->getQueue($queue));
-        });
+        wait(call(function () use ($queue, $id) {
+            yield $this->client->use($this->getQueue($queue));
 
-        $this->client->delete($id);
+            return $this->client->delete($id);
+        }));
     }
 
     /**

@@ -4,7 +4,6 @@ use Amp\Beanstalk\BeanstalkClient;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Queue\Job as JobContract;
 use Illuminate\Queue\Jobs\Job;
-use function Amp\call;
 use function Amp\Promise\wait;
 
 class AsyncBeanstalkdJob extends Job implements JobContract
@@ -45,7 +44,7 @@ class AsyncBeanstalkdJob extends Job implements JobContract
     {
         parent::release($delay);
 
-        $this->client->release($this->getId(), $delay);
+        wait($this->client->release($this->getId(), $delay));
     }
 
     /**
@@ -57,7 +56,7 @@ class AsyncBeanstalkdJob extends Job implements JobContract
     {
         parent::delete();
 
-        $this->client->delete($this->getId());
+        wait($this->client->delete($this->getId()));
     }
 
     /**
@@ -77,12 +76,7 @@ class AsyncBeanstalkdJob extends Job implements JobContract
      */
     public function attempts()
     {
-        /** @var \Amp\Beanstalk\Stats\Job $job */
-        $job = wait(call(function () {
-            $this->client->getJobStats($this->getId());
-        }));
-
-        return $job->reserves;
+        return wait($this->client->getJobStats($this->getId()))->reserves;
     }
 
     /**
